@@ -236,7 +236,7 @@ function handleMultiplayerMessage(data) {
       } else if (dragon) {
         moveDragon(dragon, data.tr, data.tc);
       } else {
-        movePiece(data.fr, data.fc, data.tr, data.tc);
+        movePiece(data.fr, data.fc, data.tr, data.tc, data.promoteTo);
       }
       break;
       
@@ -261,6 +261,11 @@ function handleMultiplayerMessage(data) {
       }
       
       useCard(opponentColor, data.cardId);
+      break;
+
+    case 'restart':
+      addLog('🔄 Lawan memulai ulang permainan.', 'special');
+      restartGame(true);
       break;
   }
 }

@@ -28,6 +28,12 @@ global.addLog = (msg, type) => {
   console.log(`[LOG - ${type || 'normal'}] ${msg}`);
 };
 
+global.Peer = class {
+  on() {}
+  connect() {}
+  destroy() {}
+};
+
 const baseDir = 'c:/Users/abdul/Documents/CheesF';
 const files = [
   'js/constants.js',
@@ -36,6 +42,7 @@ const files = [
   'js/summon.js',
   'js/ui.js',
   'js/game.js',
+  'js/multiplayer.js',
   'js/ai.js'
 ];
 

@@ -85,7 +85,7 @@ function onCellClick(r,c){
   }
 }
 
-function movePiece(fr,fc,tr,tc){
+function movePiece(fr,fc,tr,tc,promoteTo){
   const piece=board[fr][fc];
   const owner=piece[0];
   const type=piece[1];
@@ -95,6 +95,12 @@ function movePiece(fr,fc,tr,tc){
   if(type==='N' && captured && captured===`${owner}N`){
     if (!canSummonUniquePiece(owner, 'D')) return;
     board[fr][fc]=null;
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
+      sendMultiplayerMessage({
+        type: 'move',
+        fr: fr, fc: fc, tr: tr, tc: tc
+      });
+    }
     if (typeof executeFusionSummon === 'function') {
       executeFusionSummon(owner, tr, tc);
     }
@@ -106,6 +112,12 @@ function movePiece(fr,fc,tr,tc){
   if (isPawnKnightFusion) {
     if (!canSummonUniquePiece(owner, 'U')) return;
     board[fr][fc] = null;
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
+      sendMultiplayerMessage({
+        type: 'move',
+        fr: fr, fc: fc, tr: tr, tc: tc
+      });
+    }
     if (typeof executeUmaFusionSummon === 'function') {
       executeUmaFusionSummon(owner, tr, tc);
     }
@@ -151,7 +163,11 @@ function movePiece(fr,fc,tr,tc){
 
   // Pawn promotion
   if(type==='P'&&(tr===0||tr===7)){
-    if (owner === 'b' && gameMode === 'vsAI') {
+    if (promoteTo) {
+      board[tr][tc] = `${owner}${promoteTo}`;
+      addLog(`👑 Promosi ke ${promoteTo === 'Q' ? 'Ratu' : promoteTo === 'R' ? 'Benteng' : promoteTo === 'B' ? 'Gajah' : 'Kuda'}!`, 'special');
+      finishMoveActions();
+    } else if (owner === 'b' && gameMode === 'vsAI') {
       board[tr][tc] = `${owner}Q`;
       addLog(`👑 Promosi ke Ratu!`, 'special');
       finishMoveActions();
@@ -165,7 +181,7 @@ function movePiece(fr,fc,tr,tc){
 
   addLog(`${PIECE_EMOJIS[piece]} ${COLS[fc]}${8-fr}→${COLS[tc]}${8-tr}`);
   
-  if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+  if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
     sendMultiplayerMessage({
       type: 'move',
       fr: fr, fc: fc, tr: tr, tc: tc
@@ -201,7 +217,7 @@ function moveDragon(dragon,tr,tc){
 
   addLog(`🐉 Naga bergerak ke ${COLS[tc]}${8-tr}${captured?` (+${captured})`:''}`,'dragon');
   
-  if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+  if (typeof isMultiplayer !== 'undefined' && isMultiplayer && dragon.owner === myColor) {
     sendMultiplayerMessage({
       type: 'move',
       fr: oldRow, fc: oldCol, tr: tr, tc: tc
@@ -255,7 +271,7 @@ function checkGameOver(){
 }
 
 // ===== RESTART =====
-function restartGame(){
+function restartGame(isLocalOnly){
   if (activeGoldenHour && activeGoldenHour.timerId) {
     clearInterval(activeGoldenHour.timerId);
   }
@@ -271,6 +287,12 @@ function restartGame(){
   
   addLog('♟ Permainan baru dimulai!','special');
   renderBoard();
+
+  if (typeof isMultiplayer !== 'undefined' && isMultiplayer && isLocalOnly !== true) {
+    sendMultiplayerMessage({
+      type: 'restart'
+    });
+  }
 }
 
 // Bottom restart button
@@ -394,7 +416,7 @@ function executeUmaKick(fr, fc, tr, tc, forceDirection) {
   pendingUmaAction = null;
   renderBoard();
   
-  if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+  if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
     sendMultiplayerMessage({
       type: 'move',
       fr: fr, fc: fc, tr: tr, tc: tc
