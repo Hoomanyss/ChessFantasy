@@ -64,7 +64,23 @@ function getBishopMoves(r,c,owner) {
 }
 
 function getQueenMoves(r,c,owner) {
-  return [...getRookMoves(r,c,owner),...getBishopMoves(r,c,owner)];
+  const moves = [...getRookMoves(r,c,owner),...getBishopMoves(r,c,owner)];
+  // Allow Queen to target own King to initiate Warlord fusion
+  for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) {
+    let nr = r + dr, nc = c + dc;
+    while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+      const piece = board[nr][nc];
+      if (piece) {
+        if (piece === `${owner}K`) {
+          moves.push([nr, nc]);
+        }
+        break;
+      }
+      nr += dr;
+      nc += dc;
+    }
+  }
+  return moves;
 }
 
 function getKingMoves(r,c,owner) {
@@ -74,7 +90,11 @@ function getKingMoves(r,c,owner) {
     const nr=r+dr,nc=c+dc;
     if(nr>=0&&nr<8&&nc>=0&&nc<8){
       const t=board[nr][nc];
-      if(!t||(t[0]!==owner)) moves.push([nr,nc]);
+      if(!t||(t[0]!==owner)) {
+        moves.push([nr,nc]);
+      } else if (t === `${owner}Q`) {
+        moves.push([nr,nc]);
+      }
     }
   }
   // Castling with check checks
