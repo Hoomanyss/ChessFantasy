@@ -247,6 +247,21 @@ header p {
   pointer-events: none;
 }
 
+.cell.warlord-promote-ready::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0, 255, 150, 0.4);
+  animation: warlordPromotePulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes warlordPromotePulse {
+  0%, 100% { opacity: 0.4; box-shadow: inset 0 0 10px rgba(0, 255, 150, 0.5); }
+  50%       { opacity: 0.85; box-shadow: inset 0 0 20px rgba(0, 255, 150, 0.9); }
+}
+
+
 .cell.fire-zone::after {
   content: '';
   position: absolute; inset: 0;

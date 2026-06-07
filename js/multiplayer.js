@@ -263,6 +263,11 @@ function handleMultiplayerMessage(data) {
       useCard(opponentColor, data.cardId);
       break;
 
+    case 'warlord_promote':
+      const oppColor = myColor === 'w' ? 'b' : 'w';
+      executeWarlordPromote(oppColor, data.wr, data.wc, data.tr, data.tc, data.promoteTo);
+      break;
+
     case 'restart':
       addLog('🔄 Lawan memulai ulang permainan.', 'special');
       restartGame(true);

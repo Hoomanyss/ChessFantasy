@@ -4,6 +4,25 @@ function onCellClick(r,c){
   if(gameMode === 'vsAI' && currentTurn === 'b') return;
   if(typeof isMultiplayer !== 'undefined' && isMultiplayer && currentTurn !== myColor) return;
 
+  if (typeof pendingWarlordPromotion !== 'undefined' && pendingWarlordPromotion !== null) {
+    const wr = pendingWarlordPromotion.r;
+    const wc = pendingWarlordPromotion.c;
+    const isPawn = board[r][c] === `${currentTurn}P`;
+    const isWithin3x3 = Math.abs(r - wr) <= 1 && Math.abs(c - wc) <= 1;
+    if (isPawn && isWithin3x3) {
+      if (typeof showWarlordPromoChoices === 'function') {
+        showWarlordPromoChoices(r, c);
+      }
+    } else {
+      pendingWarlordPromotion = null;
+      selectedCell = null;
+      validMoves = [];
+      updateActionsArea(null);
+      renderBoard();
+    }
+    return;
+  }
+
   // If fire breath preview active
   if(pendingFireBreath){
     cancelFireBreath();
@@ -120,6 +139,22 @@ function movePiece(fr,fc,tr,tc,promoteTo){
     }
     if (typeof executeUmaFusionSummon === 'function') {
       executeUmaFusionSummon(owner, tr, tc);
+    }
+    return;
+  }
+
+  // Detect friendly King-Queen fusion or Queen-King fusion
+  const isWarlordFusion = (type === 'K' && captured === `${owner}Q`) || (type === 'Q' && captured === `${owner}K`);
+  if (isWarlordFusion) {
+    board[fr][fc] = null;
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
+      sendMultiplayerMessage({
+        type: 'move',
+        fr: fr, fc: fc, tr: tr, tc: tc
+      });
+    }
+    if (typeof executeWarlordFusionSummon === 'function') {
+      executeWarlordFusionSummon(owner, tr, tc);
     }
     return;
   }
@@ -277,7 +312,7 @@ function restartGame(isLocalOnly){
   }
   gameOver=false; currentTurn='w'; selectedCell=null; validMoves=[];
   moveCount=1; dragons=[]; pendingSummon=null; pendingFireBreath=null;
-  pendingPromotion=null; enPassantTarget=null;
+  pendingPromotion=null; pendingWarlordPromotion=null; enPassantTarget=null;
   initBoard();
   
   const banner = document.getElementById('goldenHourBanner');
@@ -339,73 +374,95 @@ function executeUmaKick(fr, fc, tr, tc, forceDirection) {
   }
 
   // Execute chain reaction physics
-  if (cells.length === 1) {
-    const [cr, cc] = cells[0];
-    const nr = cr + pr;
-    const nc = cc + pc;
-    const targetPiece = board[cr][cc];
+  if (cells.length > 0 && board[tr][tc][1] === 'W') {
+    addLog(`🛡️ Warlord kebal dari tendangan Uma Musume!`, 'special');
+    pendingUmaAction = null;
+    renderBoard();
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
+      sendMultiplayerMessage({
+        type: 'move',
+        fr: fr, fc: fc, tr: tr, tc: tc
+      });
+    }
+    endTurn();
+    checkGameOver();
+    return;
+  }
+
+  // Find if there is a Warlord behind the target
+  let blockIdx = -1;
+  for (let idx = 1; idx < cells.length; idx++) {
+    const [cr, cc] = cells[idx];
+    if (board[cr][cc][1] === 'W') {
+      blockIdx = idx;
+      break;
+    }
+  }
+
+  if (blockIdx !== -1) {
+    // The piece at blockIdx - 1 dies
+    const [dr, dc] = cells[blockIdx - 1];
+    const deadPiece = board[dr][dc];
+    board[dr][dc] = null;
     
-    // Check if pushed off the board
-    if (nr < 0 || nr > 7 || nc < 0 || nc > 7) {
-      board[cr][cc] = null;
-      addLog(`🦵 Uma Musume menendang ${PIECE_EMOJIS[targetPiece]} keluar papan!`, 'fire');
-      if (targetPiece === 'wD' || targetPiece === 'bD') {
-        const deadDragon = getDragonAt(cr, cc);
-        if (deadDragon && typeof destroyDragon === 'function') {
-          destroyDragon(deadDragon);
-        }
-      }
-    } else {
-      // Move to empty cell nr, nc
-      board[nr][nc] = board[cr][cc];
-      board[cr][cc] = null;
-      addLog(`🦵 Uma Musume menendang ${PIECE_EMOJIS[targetPiece]} mundur 1 petak!`, 'special');
-    }
-  } else if (cells.length === 2) {
-    const [cr0, cc0] = cells[0];
-    const [cr1, cc1] = cells[1];
-    const targetPiece = board[cr0][cc0];
-    const backPiece = board[cr1][cc1];
-
-    // The back piece dies
-    board[cr1][cc1] = null;
-    if (backPiece === 'wD' || backPiece === 'bD') {
-      const deadDragon = getDragonAt(cr1, cc1);
-      if (deadDragon && typeof destroyDragon === 'function') {
-        destroyDragon(deadDragon);
-      }
-    }
-
-    // Front piece is pushed to cr1, cc1
-    board[cr1][cc1] = board[cr0][cc0];
-    board[cr0][cc0] = null;
-
-    addLog(`🦵 Uma Musume menendang ${PIECE_EMOJIS[targetPiece]}, menewaskan ${PIECE_EMOJIS[backPiece]} di belakangnya!`, 'fire');
-  } else if (cells.length >= 3) {
-    const targetPiece = board[cells[0][0]][cells[0][1]];
-    const lastIdx = cells.length - 1;
-    const [lr, lc] = cells[lastIdx];
-    const deadPiece = board[lr][lc];
-
-    // Furthest piece dies
-    board[lr][lc] = null;
     if (deadPiece === 'wD' || deadPiece === 'bD') {
-      const deadDragon = getDragonAt(lr, lc);
+      const deadDragon = getDragonAt(dr, dc);
       if (deadDragon && typeof destroyDragon === 'function') {
         destroyDragon(deadDragon);
       }
     }
 
-    // Shift other pieces in the chain forward by 1 cell
-    for (let idx = lastIdx - 1; idx >= 0; idx--) {
+    // Shift pieces in front of it (from blockIdx-2 down to 0) forward
+    for (let idx = blockIdx - 2; idx >= 0; idx--) {
       const [cr, cc] = cells[idx];
       const nr = cr + pr;
       const nc = cc + pc;
       board[nr][nc] = board[cr][cc];
     }
-    board[tr][tc] = null; // Target cell cleared
+    board[tr][tc] = null; // Clear target cell for Uma Musume
 
-    addLog(`🦵 Uma Musume menendang berantai! ${PIECE_EMOJIS[deadPiece]} gugur dan bidak lain mundur!`, 'fire');
+    addLog(`🦵 Uma Musume menendang berantai! Terbentur Warlord, ${PIECE_EMOJIS[deadPiece]} gugur!`, 'fire');
+  } else {
+    // Standard push physics (no Warlord blocking)
+    if (cells.length === 1) {
+      const [cr, cc] = cells[0];
+      const nr = cr + pr;
+      const nc = cc + pc;
+      const targetPiece = board[cr][cc];
+      if (nr < 0 || nr > 7 || nc < 0 || nc > 7) {
+        board[cr][cc] = null;
+        addLog(`🦵 Uma Musume menendang ${PIECE_EMOJIS[targetPiece]} keluar papan!`, 'fire');
+        if (targetPiece === 'wD' || targetPiece === 'bD') {
+          const deadDragon = getDragonAt(cr, cc);
+          if (deadDragon && typeof destroyDragon === 'function') {
+            destroyDragon(deadDragon);
+          }
+        }
+      } else {
+        board[nr][nc] = board[cr][cc];
+        board[cr][cc] = null;
+        addLog(`🦵 Uma Musume menendang ${PIECE_EMOJIS[targetPiece]} mundur 1 petak!`, 'special');
+      }
+    } else {
+      const lastIdx = cells.length - 1;
+      const [lr, lc] = cells[lastIdx];
+      const deadPiece = board[lr][lc];
+      board[lr][lc] = null;
+      if (deadPiece === 'wD' || deadPiece === 'bD') {
+        const deadDragon = getDragonAt(lr, lc);
+        if (deadDragon && typeof destroyDragon === 'function') {
+          destroyDragon(deadDragon);
+        }
+      }
+      for (let idx = lastIdx - 1; idx >= 0; idx--) {
+        const [cr, cc] = cells[idx];
+        const nr = cr + pr;
+        const nc = cc + pc;
+        board[nr][nc] = board[cr][cc];
+      }
+      board[tr][tc] = null;
+      addLog(`🦵 Uma Musume menendang berantai! ${PIECE_EMOJIS[deadPiece]} gugur dan bidak lain mundur!`, 'fire');
+    }
   }
 
   // Move Uma Musume to target square
@@ -704,6 +761,9 @@ function applyRewind() {
   blackPieceCount = prevState.blackPieceCount;
   hasSummonedDragon = { ...prevState.hasSummonedDragon };
   hasSummonedUma = { ...prevState.hasSummonedUma };
+  if (prevState.warlordCharges) {
+    warlordCharges = { ...prevState.warlordCharges };
+  }
   
   playCardSound('rewind');
   addLog(`⏮️ Rewind berhasil! Kembali ke giliran Anda 3 turn sebelumnya.`, 'special');

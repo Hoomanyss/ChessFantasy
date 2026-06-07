@@ -41,8 +41,18 @@ function renderBoard() {
     if(selectedCell && selectedCell[0]===r && selectedCell[1]===c) cell.classList.add('selected');
     if(isValidMove(r,c)) cell.classList.add(board[r][c] && board[r][c][0]!==currentTurn?'valid-capture':'valid-move');
 
+    if (typeof pendingWarlordPromotion !== 'undefined' && pendingWarlordPromotion !== null) {
+      const wr = pendingWarlordPromotion.r;
+      const wc = pendingWarlordPromotion.c;
+      const isPawn = board[r][c] === `${currentTurn}P`;
+      const isWithin3x3 = Math.abs(r - wr) <= 1 && Math.abs(c - wc) <= 1;
+      if (isPawn && isWithin3x3) {
+        cell.classList.add('warlord-promote-ready');
+      }
+    }
+
     const piece = board[r][c];
-    if (piece && piece[1] === 'K') {
+    if (piece && (piece[1] === 'K' || piece[1] === 'W')) {
       const owner = piece[0];
       const opponent = owner === 'w' ? 'b' : 'w';
       if (isSquareThreatened(r, c, opponent)) {
@@ -203,9 +213,31 @@ function updateActionsArea(ctx){
 
   if(ctx.type==='piece'){
     const info=document.createElement('div');
-    info.style.cssText='font-size:11px;color:var(--text-muted)';
+    info.style.cssText='font-size:11px;color:var(--text-muted);margin-bottom:6px;';
     info.textContent=`${PIECE_EMOJIS[ctx.piece]} ${COLS[ctx.c]}${8-ctx.r} — ${validMoves.length} langkah`;
     area.appendChild(info);
+
+    if (ctx.piece[1] === 'W') {
+      const chargeCount = warlordCharges[currentTurn] || 0;
+      const promoteBtn = document.createElement('button');
+      promoteBtn.className = 'btn';
+      promoteBtn.style.marginTop = '4px';
+      promoteBtn.innerHTML = `⚔️ Promosi Bidak (${chargeCount}/2)`;
+      
+      if (typeof activeGoldenHour !== 'undefined' && activeGoldenHour !== null) {
+        promoteBtn.disabled = true;
+        promoteBtn.style.opacity = '0.5';
+        promoteBtn.style.cursor = 'not-allowed';
+        promoteBtn.title = 'Tidak bisa menggunakan skill saat Golden Hour';
+      } else if (chargeCount <= 0) {
+        promoteBtn.disabled = true;
+        promoteBtn.style.opacity = '0.5';
+        promoteBtn.style.cursor = 'not-allowed';
+      } else {
+        promoteBtn.onclick = () => startWarlordPromotion(ctx.r, ctx.c);
+      }
+      area.appendChild(promoteBtn);
+    }
   }
 }
 
@@ -217,6 +249,75 @@ function cancelFireBreath(){
   pendingFireBreath=null;
   renderBoard();
   updateActionsArea(null);
+}
+
+function startWarlordPromotion(r, c) {
+  pendingWarlordPromotion = { r, c };
+  renderBoard();
+
+  const area = document.getElementById('actionsArea');
+  if (!area) return;
+  area.innerHTML = '';
+
+  const info = document.createElement('div');
+  info.style.cssText = 'font-size: 11px; color: var(--gold); margin-bottom: 8px; font-weight: bold; text-align: center; width: 100%;';
+  info.textContent = 'PILIH PION YANG DIHIGHLIGHT DI SEKITAR WARLORD';
+  area.appendChild(info);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn';
+  cancelBtn.textContent = 'Batal';
+  cancelBtn.onclick = () => {
+    pendingWarlordPromotion = null;
+    selectedCell = null;
+    validMoves = [];
+    updateActionsArea(null);
+    renderBoard();
+  };
+  area.appendChild(cancelBtn);
+}
+
+function showWarlordPromoChoices(tr, tc) {
+  const area = document.getElementById('actionsArea');
+  if (!area) return;
+  area.innerHTML = '';
+
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size: 11px; color: var(--gold); margin-bottom: 8px; font-weight: bold; width: 100%; text-align: center;';
+  label.textContent = 'PROMOSI PION KE:';
+  area.appendChild(label);
+
+  const choices = [
+    { type: 'N', name: 'Kuda', emoji: PIECE_EMOJIS[`${currentTurn}N`] },
+    { type: 'B', name: 'Gajah', emoji: PIECE_EMOJIS[`${currentTurn}B`] },
+    { type: 'R', name: 'Benteng', emoji: PIECE_EMOJIS[`${currentTurn}R`] }
+  ];
+
+  choices.forEach(ch => {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.style.cssText = 'margin: 4px; display: inline-flex; align-items: center; gap: 4px;';
+    btn.innerHTML = `<span style="font-size: 16px;">${ch.emoji}</span> ${ch.name}`;
+    btn.onclick = () => {
+      if (pendingWarlordPromotion) {
+        executeWarlordPromote(currentTurn, pendingWarlordPromotion.r, pendingWarlordPromotion.c, tr, tc, ch.type);
+      }
+    };
+    area.appendChild(btn);
+  });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn';
+  cancelBtn.style.cssText = 'margin: 4px;';
+  cancelBtn.textContent = 'Batal';
+  cancelBtn.onclick = () => {
+    pendingWarlordPromotion = null;
+    selectedCell = null;
+    validMoves = [];
+    updateActionsArea(null);
+    renderBoard();
+  };
+  area.appendChild(cancelBtn);
 }
 
 function showDirectionButtons(dragon, activeDirection = null) {
@@ -413,7 +514,7 @@ function showTooltip(e,r,c){
   let text='';
   if(dragon) text=`🐉 Naga ${dragon.owner==='w'?'Putih':'Hitam'}\nAktif — bisa semburkan api`;
   else if(piece) {
-    const names={P:'Pion',N:'Kuda',B:'Gajah',R:'Benteng',Q:'Ratu',K:'Raja',U:'Uma Musume'};
+    const names={P:'Pion',N:'Kuda',B:'Gajah',R:'Benteng',Q:'Ratu',K:'Raja',U:'Uma Musume',W:'Warlord'};
     text=`${PIECE_EMOJIS[piece]} ${names[piece[1]]||piece[1]} ${piece[0]==='w'?'Putih':'Hitam'}\n${COLS[c]}${8-r}`;
   } else return;
   tooltip.textContent=text;

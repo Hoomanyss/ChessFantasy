@@ -149,6 +149,7 @@ function getValidMovesFor(r,c){
     case 'R': rawMoves = getRookMoves(r,c,owner); break;
     case 'Q': rawMoves = getQueenMoves(r,c,owner); break;
     case 'K': rawMoves = getKingMoves(r,c,owner); break;
+    case 'W': rawMoves = getKingMoves(r,c,owner); break;
     case 'U': rawMoves = getUmaMoves(r,c,owner); break;
     default: return [];
   }
@@ -372,7 +373,7 @@ function isValidMove(r,c){
 }
 
 function findKing(color){
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c]===`${color}K`) return [r,c];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c]===`${color}K` || board[r][c]===`${color}W`) return [r,c];
   return null;
 }
 
@@ -382,8 +383,8 @@ function isSquareThreatened(tr, tc, attackerColor) {
       const p = board[r][c];
       if (p && p[0] === attackerColor) {
         const type = p[1];
-        if (type === 'K') {
-          // King threats are only adjacent cells
+        if (type === 'K' || type === 'W') {
+          // King/Warlord threats are only adjacent cells
           if (Math.abs(tr - r) <= 1 && Math.abs(tc - c) <= 1) return true;
           continue;
         }

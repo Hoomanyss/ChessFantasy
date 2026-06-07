@@ -57,6 +57,10 @@ function executeFireBreath(dragon, direction) {
   let destroyed=0;
   for(const[r,c]of zone){
     if(board[r][c]&&board[r][c][0]!==dragon.owner){
+      if (board[r][c][1] === 'W') {
+        addLog(`🛡️ Warlord kebal dari semburan api!`, 'special');
+        continue;
+      }
       board[r][c]=null;
       destroyed++;
     }
@@ -111,6 +115,45 @@ function executeUmaFusionSummon(owner, r, c) {
   hasSummonedUma[owner] = true;
   addLog(`✨ FUSION! Pion dan Kuda ${owner==='w'?'Putih':'Hitam'} menyatu menjadi Uma Musume!`,'dragon');
   if (typeof renderBoard === 'function') renderBoard();
+  if (typeof activeGoldenHour !== 'undefined' && activeGoldenHour !== null) {
+    // Keep turn during Golden Hour
+  } else {
+    if (typeof endTurn === 'function') endTurn();
+  }
+}
+
+function executeWarlordFusionSummon(owner, r, c) {
+  board[r][c] = `${owner}W`;
+  addLog(`✨ FUSION! Raja dan Ratu ${owner==='w'?'Putih':'Hitam'} menyatu menjadi Warlord!`,'dragon');
+  if (typeof renderBoard === 'function') renderBoard();
+  if (typeof activeGoldenHour !== 'undefined' && activeGoldenHour !== null) {
+    // Keep turn during Golden Hour
+  } else {
+    if (typeof endTurn === 'function') endTurn();
+  }
+}
+
+function executeWarlordPromote(owner, wr, wc, tr, tc, promoteTo) {
+  board[tr][tc] = `${owner}${promoteTo}`;
+  warlordCharges[owner]--;
+  
+  const pieceName = promoteTo === 'N' ? 'Kuda' : promoteTo === 'B' ? 'Gajah' : 'Benteng';
+  addLog(`⚔️ Warlord mempromosikan Pion ke ${pieceName}!`, 'special');
+  
+  if (typeof isMultiplayer !== 'undefined' && isMultiplayer && owner === myColor) {
+    sendMultiplayerMessage({
+      type: 'warlord_promote',
+      wr: wr,
+      wc: wc,
+      tr: tr,
+      tc: tc,
+      promoteTo: promoteTo
+    });
+  }
+  
+  pendingWarlordPromotion = null;
+  renderBoard();
+  
   if (typeof activeGoldenHour !== 'undefined' && activeGoldenHour !== null) {
     // Keep turn during Golden Hour
   } else {

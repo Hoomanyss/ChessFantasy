@@ -10,6 +10,7 @@ let dragons = []; // {row, col, owner, hasFired}
 let pendingSummon = null; // {knight1, knight2, topRow, leftCol, owner}
 let pendingFireBreath = null; // dragon cell
 let pendingPromotion = null;
+let pendingWarlordPromotion = null;
 let enPassantTarget = null;
 let castlingRights = { wK:true, wQ:true, bK:true, bQ:true };
 let initialPieces = 16;
@@ -20,6 +21,7 @@ let pendingUmaAction = null;
 let gameMode = 'vsPlayer';
 let hasSummonedDragon = { w: false, b: false };
 let hasSummonedUma = { w: false, b: false };
+let warlordCharges = { w: 2, b: 2 };
 
 let playerCards = { w: [], b: [] };
 let playerTurnCount = { w: 1, b: 0 };
@@ -46,6 +48,7 @@ function initBoard() {
   whitePieceCount = blackPieceCount = 16;
   hasSummonedDragon = { w: false, b: false };
   hasSummonedUma = { w: false, b: false };
+  warlordCharges = { w: 2, b: 2 };
   playerCards = { w: [], b: [] };
   playerTurnCount = { w: 1, b: 0 };
   activeGoldenHour = null;
@@ -75,7 +78,8 @@ function saveHistoryState() {
     whitePieceCount: whitePieceCount,
     blackPieceCount: blackPieceCount,
     hasSummonedDragon: { ...hasSummonedDragon },
-    hasSummonedUma: { ...hasSummonedUma }
+    hasSummonedUma: { ...hasSummonedUma },
+    warlordCharges: { ...warlordCharges }
   });
   if (gameHistory.length > 50) {
     gameHistory.shift();
