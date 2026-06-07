@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess × Yu-Gi-Oh!</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Chess × Yu-Gi-Oh!</h1>
+  <p>Duel of Pieces &amp; Monsters</p>
+</header>
+
+<div class="main-layout">
+  <!-- Left Panel -->
+  <div class="side-panel" id="leftPanel">
+    <div class="panel-card">
+      <h3>⚔ Giliran</h3>
+      <div class="turn-indicator">
+        <div class="turn-dot" id="turnDot"></div>
+        <span id="turnText">Putih</span>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); margin-top:6px;" id="moveCount">Langkah ke-1</div>
+    </div>
+
+    <div class="panel-card">
+      <h3>💚 HP Pieces</h3>
+      <div class="hp-bar-container">
+        <div class="hp-row">
+          <span class="hp-label">Putih</span>
+          <div class="hp-bar"><div class="hp-fill white" id="hpWhite" style="width:100%"></div></div>
+          <span id="hpWhiteNum" style="font-size:10px;width:24px;text-align:right">16</span>
+        </div>
+        <div class="hp-row">
+          <span class="hp-label">Hitam</span>
+          <div class="hp-bar"><div class="hp-fill black" id="hpBlack" style="width:100%"></div></div>
+          <span id="hpBlackNum" style="font-size:10px;width:24px;text-align:right">16</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>🐉 Status Monster</h3>
+      <div id="dragonStatus" style="font-size:11px;color:var(--text-muted);">Belum ada naga terpanggil.</div>
+    </div>
+
+    <div class="panel-card">
+      <h3>🔮 Aksi Spesial</h3>
+      <div id="actionsArea" class="actions-area">
+        <div style="font-size:11px;color:var(--text-muted);">Pilih bidak dulu...</div>
+      </div>
+    </div>
+
+    <div class="panel-card" id="cardsPanel">
+      <h3>🎴 Kartu Efek</h3>
+      <div id="cardsArea" class="cards-area">
+        <div style="font-size:11px;color:var(--text-muted);">Belum ada kartu efek.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div class="board-container">
+    <div id="goldenHourBanner" class="golden-hour-banner" style="display:none;">
+      ⏱️ GOLDEN HOUR: <span id="goldenHourTimer">5.0</span>s
+    </div>
+    <div class="board-wrapper">
+      <!-- Top coords (letters) -->
+      <div style="display:flex;padding-left:28px;">
+        <div class="coord-label"></div>
+        <div class="coord-label">a</div>
+        <div class="coord-label">b</div>
+        <div class="coord-label">c</div>
+        <div class="coord-label">d</div>
+        <div class="coord-label">e</div>
+        <div class="coord-label">f</div>
+        <div class="coord-label">g</div>
+        <div class="coord-label">h</div>
+      </div>
+      <div style="display:flex;">
+        <!-- Side coords (numbers) -->
+        <div style="display:flex;flex-direction:column;">
+          <div class="coord-label">8</div>
+          <div class="coord-label">7</div>
+          <div class="coord-label">6</div>
+          <div class="coord-label">5</div>
+          <div class="coord-label">4</div>
+          <div class="coord-label">3</div>
+          <div class="coord-label">2</div>
+          <div class="coord-label">1</div>
+        </div>
+        <div class="board" id="chessBoard"></div>
+      </div>
+    </div>
+
+    <div class="actions-area" id="bottomActions" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="side-panel" id="rightPanel">
+    <div class="panel-card">
+      <h3>📜 Legend Bidak</h3>
+      <div class="piece-legend">
+        <div class="legend-item"><span class="legend-emoji">♟</span> Pion</div>
+        <div class="legend-item"><span class="legend-emoji">♞</span> Kuda</div>
+        <div class="legend-item"><span class="legend-emoji">♝</span> Gajah</div>
+        <div class="legend-item"><span class="legend-emoji">♜</span> Benteng</div>
+        <div class="legend-item"><span class="legend-emoji">♛</span> Ratu</div>
+        <div class="legend-item"><span class="legend-emoji">♚</span> Raja</div>
+        <div class="legend-item"><span class="legend-emoji">🐉</span> NAGA</div>
+        <div class="legend-item"><span class="legend-emoji">🔥</span> Semburan</div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>🎴 Aturan Summon</h3>
+      <div style="font-size:10px;color:var(--text-muted);line-height:1.7;">
+        <div style="color:#cc88ff;margin-bottom:4px;">🐉 Summon Naga:</div>
+        • 2 Kuda dalam area 2×2<br>
+        • Keduanya warna sama<br>
+        • Kuda dikorbankan<br>
+        • Naga berukuran 2×2 petak<br><br>
+        <div style="color:var(--accent-fire);margin-bottom:4px;">🔥 Semburan Api:</div>
+        • Serang area 2×3 ke depan<br>
+        • Hancurkan semua bidak musuh<br>
+        • di area tersebut<br>
+        • Naga tak bisa gerak setelah menyemburkan api
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>📋 Riwayat</h3>
+      <div class="log-area" id="logArea">
+        <div class="log-entry special">♟ Permainan dimulai!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Promotion Modal -->
+<div class="promotion-modal" id="promoModal" style="display:none;">
+  <div class="modal-box">
+    <h2>Promosi Pion!</h2>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Pilih bidak pengganti:</p>
+    <div class="promo-options" id="promoOptions"></div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<!-- Load Scripts in Dependency Order -->
+<script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/moves.js"></script>
+<script src="js/summon.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/multiplayer.js"></script>
+</body>
+</html>
