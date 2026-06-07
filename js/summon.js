@@ -81,16 +81,17 @@ function executeFireBreath(dragon, direction) {
 function showFireAnimation(zone, cb) {
   animatingFire=true;
   const boardEl=document.getElementById('chessBoard');
+  const isFlipped = (typeof isMultiplayer !== 'undefined' && isMultiplayer && myColor === 'b');
   if (boardEl) {
     zone.forEach(([r,c])=>{
-      const idx=r*8+c;
+      const idx = isFlipped ? (63 - (r*8+c)) : (r*8+c);
       if(boardEl.children[idx]) boardEl.children[idx].classList.add('fire-zone');
     });
   }
   setTimeout(()=>{
     if (boardEl) {
       zone.forEach(([r,c])=>{
-        const idx=r*8+c;
+        const idx = isFlipped ? (63 - (r*8+c)) : (r*8+c);
         if(boardEl.children[idx]) boardEl.children[idx].classList.remove('fire-zone');
       });
     }

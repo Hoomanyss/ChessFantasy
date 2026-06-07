@@ -14,62 +14,79 @@ function renderBoard() {
   boardEl.style.gridTemplateColumns = `repeat(8,${sz}px)`;
   boardEl.style.gridTemplateRows    = `repeat(8,${sz}px)`;
 
-  for(let r=0;r<8;r++) {
-    for(let c=0;c<8;c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell ' + ((r+c)%2===0?'light':'dark');
-      cell.dataset.r = r; cell.dataset.c = c;
+  const isFlipped = (typeof isMultiplayer !== 'undefined' && isMultiplayer && myColor === 'b');
 
-      if(selectedCell && selectedCell[0]===r && selectedCell[1]===c) cell.classList.add('selected');
-      if(isValidMove(r,c)) cell.classList.add(board[r][c] && board[r][c][0]!==currentTurn?'valid-capture':'valid-move');
+  // Update top coordinates (letters: a-h or h-a)
+  const topCoords = document.querySelector('.top-coords');
+  if (topCoords) {
+    const letters = isFlipped ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+    topCoords.innerHTML = '<div class="coord-label"></div>' + letters.map(l => `<div class="coord-label">${l}</div>`).join('');
+  }
+  
+  // Update side coordinates (numbers: 8-1 or 1-8)
+  const sideCoords = document.querySelector('.side-coords');
+  if (sideCoords) {
+    const numbers = isFlipped ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+    sideCoords.innerHTML = numbers.map(n => `<div class="coord-label">${n}</div>`).join('');
+  }
 
-      const piece = board[r][c];
-      if (piece && piece[1] === 'K') {
-        const owner = piece[0];
-        const opponent = owner === 'w' ? 'b' : 'w';
-        if (isSquareThreatened(r, c, opponent)) {
-          cell.classList.add('king-danger');
-        }
+  for(let i=0;i<64;i++) {
+    const r = isFlipped ? Math.floor((63 - i) / 8) : Math.floor(i / 8);
+    const c = isFlipped ? (63 - i) % 8 : i % 8;
+
+    const cell = document.createElement('div');
+    cell.className = 'cell ' + ((r+c)%2===0?'light':'dark');
+    cell.dataset.r = r; cell.dataset.c = c;
+
+    if(selectedCell && selectedCell[0]===r && selectedCell[1]===c) cell.classList.add('selected');
+    if(isValidMove(r,c)) cell.classList.add(board[r][c] && board[r][c][0]!==currentTurn?'valid-capture':'valid-move');
+
+    const piece = board[r][c];
+    if (piece && piece[1] === 'K') {
+      const owner = piece[0];
+      const opponent = owner === 'w' ? 'b' : 'w';
+      if (isSquareThreatened(r, c, opponent)) {
+        cell.classList.add('king-danger');
       }
-      if(piece) {
-        const el = document.createElement('div');
-        let classStr = 'piece';
-        if (piece === 'wD') classStr += ' dragon-white';
-        if (piece === 'bD') classStr += ' dragon-black';
-        if (piece === 'wU') classStr += ' uma-white';
-        if (piece === 'bU') classStr += ' uma-black';
-        el.className = classStr;
-        el.style.fontSize = (sz*0.6)+'px';
-        
-        if (piece === 'wU') {
-          const img = document.createElement('img');
-          img.src = 'assets/uma_white.png';
-          img.style.width = '85%';
-          img.style.height = '85%';
-          img.style.objectFit = 'contain';
-          el.appendChild(img);
-        } else if (piece === 'bU') {
-          const img = document.createElement('img');
-          img.src = 'assets/uma_black.png';
-          img.style.width = '85%';
-          img.style.height = '85%';
-          img.style.objectFit = 'contain';
-          el.appendChild(img);
-        } else {
-          el.textContent = PIECE_EMOJIS[piece]||piece;
-        }
-        
-        cell.appendChild(el);
-      }
-
-      cell.addEventListener('click', ()=> {
-        if (typeof onCellClick === 'function') onCellClick(r,c);
-      });
-      cell.addEventListener('mouseenter', (e)=>showTooltip(e,r,c));
-      cell.addEventListener('mouseleave', ()=>hideTooltip());
-
-      boardEl.appendChild(cell);
     }
+    if(piece) {
+      const el = document.createElement('div');
+      let classStr = 'piece';
+      if (piece === 'wD') classStr += ' dragon-white';
+      if (piece === 'bD') classStr += ' dragon-black';
+      if (piece === 'wU') classStr += ' uma-white';
+      if (piece === 'bU') classStr += ' uma-black';
+      el.className = classStr;
+      el.style.fontSize = (sz*0.6)+'px';
+      
+      if (piece === 'wU') {
+        const img = document.createElement('img');
+        img.src = 'assets/uma_white.png';
+        img.style.width = '85%';
+        img.style.height = '85%';
+        img.style.objectFit = 'contain';
+        el.appendChild(img);
+      } else if (piece === 'bU') {
+        const img = document.createElement('img');
+        img.src = 'assets/uma_black.png';
+        img.style.width = '85%';
+        img.style.height = '85%';
+        img.style.objectFit = 'contain';
+        el.appendChild(img);
+      } else {
+        el.textContent = PIECE_EMOJIS[piece]||piece;
+      }
+      
+      cell.appendChild(el);
+    }
+
+    cell.addEventListener('click', ()=> {
+      if (typeof onCellClick === 'function') onCellClick(r,c);
+    });
+    cell.addEventListener('mouseenter', (e)=>showTooltip(e,r,c));
+    cell.addEventListener('mouseleave', ()=>hideTooltip());
+
+    boardEl.appendChild(cell);
   }
 
   // Summon pulse overlay
@@ -77,7 +94,10 @@ function renderBoard() {
     const cells = boardEl.children;
     [[pendingSummon.topRow,pendingSummon.leftCol],[pendingSummon.topRow,pendingSummon.leftCol+1],
      [pendingSummon.topRow+1,pendingSummon.leftCol],[pendingSummon.topRow+1,pendingSummon.leftCol+1]].forEach(([rr,cc])=>{
-      if(rr>=0&&rr<8&&cc>=0&&cc<8) cells[rr*8+cc].classList.add('summon-ready');
+      if(rr>=0&&rr<8&&cc>=0&&cc<8) {
+        const idx = isFlipped ? (63 - (rr*8+cc)) : (rr*8+cc);
+        if(cells[idx]) cells[idx].classList.add('summon-ready');
+      }
     });
   }
 
@@ -218,6 +238,8 @@ function showDirectionButtons(dragon, activeDirection = null) {
   const grid = document.createElement('div');
   grid.style.cssText = 'display: grid; grid-template-columns: repeat(3, 40px); gap: 6px; justify-content: center; margin-bottom: 10px;';
 
+  const isFlipped = (typeof isMultiplayer !== 'undefined' && isMultiplayer && myColor === 'b');
+
   directions.forEach(dir => {
     if (dir.code === 'none') {
       const empty = document.createElement('div');
@@ -229,14 +251,25 @@ function showDirectionButtons(dragon, activeDirection = null) {
     btn.style.cssText = 'width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px;';
     btn.textContent = dir.name;
     
-    if (dir.code === activeDirection) {
+    // Determine the logical direction from the visual button
+    let logicalCode = dir.code;
+    if (isFlipped) {
+      const opposites = {
+        'UL': 'DR', 'U': 'D', 'UR': 'DL',
+        'L': 'R', 'R': 'L',
+        'DL': 'UR', 'D': 'U', 'DR': 'UL'
+      };
+      logicalCode = opposites[dir.code] || dir.code;
+    }
+
+    if (logicalCode === activeDirection) {
       btn.style.background = 'var(--gold-dark)';
       btn.style.color = 'var(--dark-bg)';
       btn.style.borderColor = 'var(--gold)';
     }
 
     btn.onclick = () => {
-      previewFireBreath(dragon, dir.code);
+      previewFireBreath(dragon, logicalCode);
     };
     grid.appendChild(btn);
   });
@@ -270,9 +303,11 @@ function previewFireBreath(dragon, direction) {
   pendingFireBreath = dragon;
   const zone = getFireBreathZone(dragon, direction);
   const boardEl = document.getElementById('chessBoard');
+  const isFlipped = (typeof isMultiplayer !== 'undefined' && isMultiplayer && myColor === 'b');
   if (boardEl) {
     zone.forEach(([r,c]) => {
-      if(boardEl.children[r*8+c]) boardEl.children[r*8+c].classList.add('fire-zone');
+      const idx = isFlipped ? (63 - (r*8+c)) : (r*8+c);
+      if(boardEl.children[idx]) boardEl.children[idx].classList.add('fire-zone');
     });
   }
   showDirectionButtons(dragon, direction);
